@@ -148,34 +148,37 @@ def get():
         searcher = Searcher()
         result['code']=5
         result['message']="play again"
+        return jsonify(result)
      else:
-        if pos.score <= -MATE_LOWER:
-            result['code']=4
-            result['message']="You lost"
-        move = None
-        while move not in pos.gen_moves():
-            match = re.match('([a-h][1-8])'*2, message)
-            if match:
-                move = parse(match.group(1)), parse(match.group(2))
-            else:
-                print("Please enter a move like g8f6")
-                result['code']=0;
-                result['message']="Please enter a move like g8f6"
-                pos = pos.move(move)
+        match = re.match('([a-h][1-8])'*2, message)
+        if match:
+            move = parse(match.group(1)), parse(match.group(2))
+        else:
+            print("Please enter a move like g8f6")
+            result['code']=0;
+            result['message']="Please enter a move like g8f6"
+            return jsonify(result)
+        if move not in pos.gen_moves():
+            result['code']=0;
+            result['message']="Please enter a move like g8f6"
+            return jsonify(result)
+        pos = pos.move(move)
         if pos.score <= -MATE_LOWER:
             print("You won")
-            result['code']=3
-            result['message']="You won"
-        move, score = searcher.search(pos, secs=2)
-        if score == MATE_UPPER:
             result['code']=2
-            result['message']="Checkmate!"
+            result['message']="You won"
+            return jsonify(result)
+        move, score = searcher.search(pos, secs=2)
+        pos = pos.move(move)
+        if pos.score <= -MATE_LOWER:
+            result['code']=3
+            result['message']=render(119-move[0]) + render(119-move[1])
+            return jsonify(result)
         print("My move:", render(119-move[0]) + render(119-move[1]))
         result['message']=render(119-move[0]) + render(119-move[1])
         result['code']=1
-        pos = pos.move(move)
-     return jsonify(result)
+        return jsonify(result)
 if __name__ == '__main__':
     pos = Position(initial, 0, (True,True), (True,True), 0, 0)
     searcher = Searcher()
-    app.run(debug=True)
+    app.run(host='0.0.0.0',port=8080)
